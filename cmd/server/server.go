@@ -85,6 +85,19 @@ func runServer(ctx context.Context, logger *slog.Logger, argsToPass []string) er
 		return xerrors.Errorf("failed to parse agent type: %w", err)
 	}
 
+	// Change working directory if project-dir is specified
+	projectDir := viper.GetString(FlagProjectDir)
+	if projectDir != "" {
+		absPath, err := filepath.Abs(projectDir)
+		if err != nil {
+			return xerrors.Errorf("failed to resolve project directory path: %w", err)
+		}
+		if err := os.Chdir(absPath); err != nil {
+			return xerrors.Errorf("failed to change to project directory %s: %w", absPath, err)
+		}
+		logger.Info("Changed working directory", "path", absPath)
+	}
+
 	termWidth := viper.GetUint16(FlagTermWidth)
 	termHeight := viper.GetUint16(FlagTermHeight)
 
@@ -382,6 +395,7 @@ const (
 	FlagSaveState       = "save-state"
 	FlagPidFile         = "pid-file"
 	FlagExperimentalACP = "experimental-acp"
+	FlagProjectDir      = "project-dir"
 )
 
 func CreateServerCmd() *cobra.Command {
@@ -425,6 +439,7 @@ func CreateServerCmd() *cobra.Command {
 		{FlagSaveState, "", false, "Save state to state-file on shutdown (defaults to true when state-file is set)", "bool"},
 		{FlagPidFile, "", "", "Path to file where the server process ID will be written for shutdown scripts", "string"},
 		{FlagExperimentalACP, "", false, "Use experimental ACP transport instead of PTY", "bool"},
+		{FlagProjectDir, "d", "", "Working directory for the agent (project root)", "string"},
 	}
 
 	for _, spec := range flagSpecs {
