@@ -243,7 +243,62 @@ agentapi server claude -d D:\MyProject -p 3285 -- --verbose
 | `lib/httpapi/server.go` | HTTP API 服务器 |
 | `lib/screentracker/conversation.go` | 对话管理和屏幕跟踪 |
 
+## Chat UI 构建注意事项
+
+### Next.js 静态导出配置
+
+**文件**: `chat/next.config.ts`
+
+```typescript
+const nextConfig: NextConfig = {
+  output: "export",  // 启用静态导出
+  images: { unoptimized: true },
+  basePath,
+  assetPrefix: `${basePath}/`,
+  trailingSlash: true,
+};
+```
+
+### 构建输出目录
+
+当使用 `output: "export"` 时，Next.js 将静态文件输出到 `chat/out/` 目录：
+
+```
+chat/out/
+├── index.html          # 主页面
+├── embed/              # 嵌入模式页面
+├── embed.html
+├── _next/              # 静态资源 (JS, CSS)
+│   └── static/
+├── favicon.ico
+└── 404.html            # 404 页面
+```
+
+**注意**: 不要使用 `.next/server/app/` 目录，该目录包含服务器端渲染的 JS 文件（如 page.js），会导致 Chat UI 显示原始 JS 内容而非 HTML 页面。
+
+### 构建脚本
+
+**文件**: `build.ps1`
+
+```powershell
+# 正确: 使用静态导出目录
+$nextOut = "chat/out"
+Copy-Item -Recurse -Force "chat\out\*" lib\httpapi\chat\
+
+# 错误: 使用服务器端输出目录 (会导致问题)
+# Copy-Item -Recurse -Force "chat\.next\server\app\*" lib\httpapi\chat\
+```
+
+### 常见问题排查
+
+| 问题 | 原因 | 解决方案 |
+|------|------|---------|
+| 显示 page.js 等原始文件 | 使用了错误的服务器端输出目录 | 使用 `chat/out/` 目录 |
+| 404 目录路径错误 | Windows 路径分隔符问题 | 构建时删除 404 目录 |
+| 静态资源加载失败 | basePath 配置不正确 | 确保 `NEXT_PUBLIC_BASE_PATH` 正确设置 |
+
 ## 相关链接
 
 - [AgentAPI GitHub](https://github.com/coder/agentapi)
 - [PTY (伪终端) 详解](https://en.wikipedia.org/wiki/Pseudoterminal)
+- [Next.js 静态导出](https://nextjs.org/docs/app/building-your-application/deploying/static-exports)
