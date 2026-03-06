@@ -12,21 +12,18 @@ bun run build
 Write-Host "=== Step 3: Copy frontend build output ===" -ForegroundColor Green
 Set-Location ..
 
-# Next.js 15 outputs to .next/server/app/ instead of out/
-$nextServerApp = "chat/.next/server/app"
-if (Test-Path $nextServerApp) {
-    Remove-Item -Recurse -Force lib\httpapi\chat -ErrorAction SilentlyContinue
-    New-Item -ItemType Directory -Path lib\httpapi\chat -Force | Out-Null
-    # Remove 404 directory to avoid path issues on Windows
-    Remove-Item -Recurse -Force "chat\.next\server\app\404" -ErrorAction SilentlyContinue
-    Copy-Item -Recurse -Force "chat\.next\server\app\*" lib\httpapi\chat\
-} else {
-    Write-Host "Next.js output not found at $nextServerApp, trying chat/out/" -ForegroundColor Yellow
+# Next.js with output: "export" generates static files to out/ directory
+$nextOut = "chat/out"
+if (Test-Path $nextOut) {
     Remove-Item -Recurse -Force lib\httpapi\chat -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Path lib\httpapi\chat -Force | Out-Null
     # Remove 404 directory to avoid path issues on Windows
     Remove-Item -Recurse -Force "chat\out\404" -ErrorAction SilentlyContinue
     Copy-Item -Recurse -Force "chat\out\*" lib\httpapi\chat\
+} else {
+    Write-Host "ERROR: Next.js static export output not found at $nextOut" -ForegroundColor Red
+    Write-Host "Make sure next.config.ts has output: 'export' and build completed successfully" -ForegroundColor Red
+    exit 1
 }
 
 Write-Host "=== Step 4: Build Go project ===" -ForegroundColor Green
