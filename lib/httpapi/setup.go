@@ -22,6 +22,8 @@ type SetupProcessConfig struct {
 	TerminalWidth  uint16
 	TerminalHeight uint16
 	AgentType      mf.AgentType
+	// AutoTrustWorkspace when true, automatically confirms workspace trust prompts
+	AutoTrustWorkspace bool
 }
 
 func SetupProcess(ctx context.Context, config SetupProcessConfig) (*termexec.Process, error) {
@@ -47,6 +49,25 @@ func SetupProcess(ctx context.Context, config SetupProcessConfig) (*termexec.Pro
 			return nil, err
 		}
 	}
+
+	// Auto-trust workspace for Claude Code when enabled
+	// Claude Code shows a trust prompt on first run in a new directory
+	if config.AutoTrustWorkspace && config.AgentType == mf.AgentTypeClaude {
+		go func() {
+			// Wait a bit for the prompt to appear
+			time.Sleep(2 * time.Second)
+			screen := process.ReadScreen()
+			// Check if trust prompt is shown
+			if strings.Contains(screen, "trust this folder") ||
+				strings.Contains(screen, "Quick safety check") ||
+				strings.Contains(screen, "Yes, I trust this folder") {
+				logger.Info("Auto-trusting workspace")
+				// Press Enter to select "Yes, I trust this folder" (option 1)
+				_, _ = process.Write([]byte("\r"))
+			}
+		}()
+	}
+
 	return process, nil
 }
 

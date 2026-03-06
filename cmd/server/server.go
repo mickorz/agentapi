@@ -198,11 +198,12 @@ func runServer(ctx context.Context, logger *slog.Logger, argsToPass []string) er
 		transport = "acp"
 	} else {
 		proc, err := httpapi.SetupProcess(ctx, httpapi.SetupProcessConfig{
-			Program:        agent,
-			ProgramArgs:    argsToPass[1:],
-			TerminalWidth:  termWidth,
-			TerminalHeight: termHeight,
-			AgentType:      agentType,
+			Program:            agent,
+			ProgramArgs:        argsToPass[1:],
+			TerminalWidth:      termWidth,
+			TerminalHeight:     termHeight,
+			AgentType:          agentType,
+			AutoTrustWorkspace: viper.GetBool(FlagAutoTrustWorkspace),
 		})
 		if err != nil {
 			return xerrors.Errorf("failed to setup process: %w", err)
@@ -387,22 +388,23 @@ type flagSpec struct {
 }
 
 const (
-	FlagType            = "type"
-	FlagPort            = "port"
-	FlagPrintOpenAPI    = "print-openapi"
-	FlagChatBasePath    = "chat-base-path"
-	FlagTermWidth       = "term-width"
-	FlagTermHeight      = "term-height"
-	FlagAllowedHosts    = "allowed-hosts"
-	FlagAllowedOrigins  = "allowed-origins"
-	FlagExit            = "exit"
-	FlagInitialPrompt   = "initial-prompt"
-	FlagStateFile       = "state-file"
-	FlagLoadState       = "load-state"
-	FlagSaveState       = "save-state"
-	FlagPidFile         = "pid-file"
-	FlagExperimentalACP = "experimental-acp"
-	FlagProjectDir      = "project-dir"
+	FlagType              = "type"
+	FlagPort              = "port"
+	FlagPrintOpenAPI      = "print-openapi"
+	FlagChatBasePath      = "chat-base-path"
+	FlagTermWidth         = "term-width"
+	FlagTermHeight        = "term-height"
+	FlagAllowedHosts      = "allowed-hosts"
+	FlagAllowedOrigins    = "allowed-origins"
+	FlagExit              = "exit"
+	FlagInitialPrompt     = "initial-prompt"
+	FlagStateFile         = "state-file"
+	FlagLoadState         = "load-state"
+	FlagSaveState         = "save-state"
+	FlagPidFile           = "pid-file"
+	FlagExperimentalACP   = "experimental-acp"
+	FlagProjectDir        = "project-dir"
+	FlagAutoTrustWorkspace = "auto-trust-workspace"
 )
 
 func CreateServerCmd() *cobra.Command {
@@ -447,6 +449,7 @@ func CreateServerCmd() *cobra.Command {
 		{FlagPidFile, "", "", "Path to file where the server process ID will be written for shutdown scripts", "string"},
 		{FlagExperimentalACP, "", false, "Use experimental ACP transport instead of PTY", "bool"},
 		{FlagProjectDir, "d", "", "Working directory for the agent (project root)", "string"},
+		{FlagAutoTrustWorkspace, "", true, "Automatically trust the workspace when Claude Code prompts for confirmation", "bool"},
 	}
 
 	for _, spec := range flagSpecs {
