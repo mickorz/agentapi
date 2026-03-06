@@ -17,10 +17,11 @@ import (
 type EventType string
 
 const (
-	EventTypeMessageUpdate EventType = "message_update"
-	EventTypeStatusChange  EventType = "status_change"
-	EventTypeScreenUpdate  EventType = "screen_update"
-	EventTypeError         EventType = "agent_error"
+	EventTypeMessageUpdate  EventType = "message_update"
+	EventTypeStatusChange   EventType = "status_change"
+	EventTypeScreenUpdate   EventType = "screen_update"
+	EventTypeError          EventType = "agent_error"
+	EventTypeOptionsUpdate  EventType = "options_update" // 新增: 选项更新事件
 )
 
 type AgentStatus string
@@ -59,6 +60,27 @@ type ErrorBody struct {
 	Message string        `json:"message" doc:"Error message"`
 	Level   st.ErrorLevel `json:"level" doc:"Error level"`
 	Time    time.Time     `json:"time" doc:"Timestamp when the error occurred"`
+}
+
+// OptionsItem 选项项
+type OptionsItem struct {
+	Label        string `json:"label" doc:"Option label text"`
+	Description string `json:"description,omitempty" doc:"Optional description for the option"`
+}
+
+// OptionsUpdateBody 选项更新事件体
+type OptionsUpdateBody struct {
+	MessageId   int           `json:"message_id" doc:"ID of the message containing the options"`
+	Options      []OptionsItem `json:"options" doc:"List of available options"`
+	MultiSelect  bool          `json:"multi_select" doc:"Whether multiple options can be selected"`
+	QuestionId   string        `json:"question_id" doc:"Unique identifier for this question"`
+}
+
+// OptionsState 用于管理待回答的问题
+type OptionsState struct {
+	QuestionId string
+	Resolve   func(answers []int)
+	Reject    func(error error)
 }
 
 type Event struct {

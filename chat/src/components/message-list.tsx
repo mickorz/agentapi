@@ -2,10 +2,17 @@
 
 import React, {useLayoutEffect, useRef, useEffect, useCallback, useMemo, useState} from "react";
 
+import { useChat } from "./chat-provider";
+import { OptionsView } from "./options-view";
+import { OptionsItem } from "../types/options";
+
 interface Message {
   role: string;
   content: string;
   id: number;
+  options?: OptionsItem[];      // 新增: 选项
+  multiSelect?: boolean;       // 新增: 是否多选
+  questionId?: string;         // 新增: 问题 ID
 }
 
 // Draft messages are used to optmistically update the UI
@@ -16,6 +23,8 @@ interface DraftMessage extends Omit<Message, "id"> {
 
 interface MessageListProps {
   messages: (Message | DraftMessage)[];
+  onAnswer: (questionId: string, answers: number[]) => void;  // 新增: 回答回调
+  loading?: boolean;  // 新增: 加载状态
 }
 
 interface ProcessedMessageProps {
@@ -23,7 +32,7 @@ interface ProcessedMessageProps {
   index: number;
 }
 
-export default function MessageList({messages}: MessageListProps) {
+export default function MessageList({messages, onAnswer, loading}: MessageListProps) {
   const [scrollAreaRef, setScrollAreaRef] = useState<HTMLDivElement | null>(null);
 
   // Track if user is at bottom - default to true for initial scroll
@@ -146,6 +155,21 @@ export default function MessageList({messages}: MessageListProps) {
               >
                 {message.role !== "user" && message.content === "" ? (
                   <LoadingDots />
+                ) : message.options && message.options.length > 0 ? (
+                  <>
+                    <ProcessedMessage messageContent={message.content} index={index} />
+                    <OptionsView
+                      options={message.options}
+                      multiSelect={message.multiSelect || false}
+                      questionId={message.questionId!}
+                      onAnswer={(questionId, answers) => {
+                        if (onAnswer) {
+                          onAnswer(questionId, answers);
+                        }
+                      }}
+                      disabled={loading}
+                    />
+                  </>
                 ) : (
                   <ProcessedMessage
                     messageContent={message.content}

@@ -98,6 +98,7 @@ interface ChatContextValue {
   loading: boolean;
   serverStatus: ServerStatus;
   sendMessage: (message: string, type?: MessageType) => void;
+  sendAnswer: (questionId: string, answers: number[]) => void;
   uploadFiles: (formData: FormData) => Promise<FileUploadResponse>;
   agentType: AgentType;
 }
@@ -376,6 +377,36 @@ export function ChatProvider({ children }: PropsWithChildren) {
     return result;
   }
 
+  // Send answer for options
+  const sendAnswer = async (questionId: string, answers: number[]) => {
+    try {
+      const response = await fetch(`${agentAPIUrl}/message`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "answer",
+          question_id: questionId,
+          answers: answers,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json() as APIErrorModel;
+        console.error("Failed to send answer:", errorData);
+        toast.error("Failed to send answer", {
+          description: errorData.detail,
+        });
+      }
+    } catch (error) {
+      console.error("Error sending answer:", error);
+      toast.error("Error sending answer", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
   return (
     <ChatContext.Provider
       value={{
@@ -385,6 +416,7 @@ export function ChatProvider({ children }: PropsWithChildren) {
         serverStatus,
         uploadFiles,
         agentType,
+        sendAnswer,
       }}
     >
       {children}
