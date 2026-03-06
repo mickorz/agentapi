@@ -19,35 +19,56 @@ var chatStaticFiles embed.FS
 const magicBasePath = "/magic-base-path-placeholder"
 
 func createModifiedFS(baseFS fs.FS, oldBasePath string, newBasePath string) (*afero.HttpFs, error) {
-	ro := afero.FromIOFS{FS: baseFS}
-	overlay := afero.NewMemMapFs()
-	newFS := afero.NewCopyOnWriteFs(ro, overlay)
+	// Use in-memory filesystem to avoid Windows path issues
+	memFS := afero.NewMemMapFs()
 
-	if err := afero.Walk(ro, ".", func(path string, info fs.FileInfo, err error) error {
+	// Use fs.WalkDir instead of afero.Walk to avoid path separator issues
+	err := fs.WalkDir(baseFS, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return xerrors.Errorf("failed to walk: %w", err)
 		}
-		if info.IsDir() {
+		if d.IsDir() {
 			return nil
 		}
-		byteContents, err := afero.ReadFile(ro, path)
+
+		// Read file content from embed.FS (always uses forward slash)
+		content, err := fs.ReadFile(baseFS, path)
 		if err != nil {
-			return xerrors.Errorf("failed to read file: %w", err)
+			return xerrors.Errorf("failed to read file %s: %w", path, err)
 		}
-		contents := string(byteContents)
-		if newBasePath == "/" {
-			contents = strings.ReplaceAll(contents, oldBasePath+"/", newBasePath)
+
+		// Replace base path in text files
+		if isTextFile(path) {
+			contents := string(content)
+			if newBasePath == "/" {
+				contents = strings.ReplaceAll(contents, oldBasePath+"/", newBasePath)
+			}
+			contents = strings.ReplaceAll(contents, oldBasePath, newBasePath)
+			content = []byte(contents)
 		}
-		contents = strings.ReplaceAll(contents, oldBasePath, newBasePath)
-		if err := afero.WriteFile(overlay, path, []byte(contents), 0o644); err != nil {
-			return xerrors.Errorf("failed to write file: %w", err)
+
+		// Write to memory filesystem with forward slash path
+		if err := afero.WriteFile(memFS, path, content, 0o644); err != nil {
+			return xerrors.Errorf("failed to write file %s: %w", path, err)
 		}
 		return nil
-	}); err != nil {
-		return nil, xerrors.Errorf("afero.Walk: %w", err)
+	})
+	if err != nil {
+		return nil, xerrors.Errorf("fs.WalkDir: %w", err)
 	}
 
-	return afero.NewHttpFs(newFS), nil
+	return afero.NewHttpFs(memFS), nil
+}
+
+func isTextFile(name string) bool {
+	ext := strings.ToLower(name)
+	textExts := []string{".html", ".css", ".js", ".json", ".txt", ".xml", ".svg", ".map"}
+	for _, e := range textExts {
+		if strings.HasSuffix(ext, e) {
+			return true
+		}
+	}
+	return false
 }
 
 // FileServerWithIndexFallback creates a file server that serves the given filesystem
