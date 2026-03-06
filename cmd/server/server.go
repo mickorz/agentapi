@@ -92,6 +92,13 @@ func runServer(ctx context.Context, logger *slog.Logger, argsToPass []string) er
 		if err != nil {
 			return xerrors.Errorf("failed to resolve project directory path: %w", err)
 		}
+		// Create directory if it doesn't exist
+		if _, err := os.Stat(absPath); os.IsNotExist(err) {
+			if err := os.MkdirAll(absPath, 0755); err != nil {
+				return xerrors.Errorf("failed to create project directory %s: %w", absPath, err)
+			}
+			logger.Info("Created project directory", "path", absPath)
+		}
 		if err := os.Chdir(absPath); err != nil {
 			return xerrors.Errorf("failed to change to project directory %s: %w", absPath, err)
 		}
