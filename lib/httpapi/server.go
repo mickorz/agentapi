@@ -484,12 +484,6 @@ func (s *Server) createMessage(ctx context.Context, input *MessageRequest) (*Mes
 		if _, err := s.agentio.Write([]byte(input.Body.Content)); err != nil {
 			return nil, xerrors.Errorf("failed to send message: %w", err)
 		}
-	case MessageTypePlan:
-		// Plan type sends message with --plan flag for Claude Code
-		planContent := "--plan " + input.Body.Content
-		if err := s.conversation.Send(FormatMessage(s.agentType, planContent)...); err != nil {
-			return nil, xerrors.Errorf("failed to send plan message: %w", err)
-		}
 	}
 
 	resp := &MessageResponse{}

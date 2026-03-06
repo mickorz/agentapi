@@ -62,7 +62,7 @@ function isDraftMessage(message: Message | DraftMessage): boolean {
   return message.id === undefined;
 }
 
-type MessageType = "user" | "raw" | "plan";
+type MessageType = "user" | "raw";
 
 export type ServerStatus = "stable" | "running" | "offline" | "unknown";
 
@@ -278,10 +278,10 @@ export function ChatProvider({ children }: PropsWithChildren) {
   // Send a new message
   const sendMessage = async (
     content: string,
-    type: "user" | "raw" | "plan" = "user"
+    type: "user" | "raw" = "user"
   ) => {
-    // For user and plan messages, require non-empty content
-    if ((type === "user" || type === "plan") && !content.trim()) return;
+    // For user messages, require non-empty content
+    if (type === "user" && !content.trim()) return;
 
     // For raw messages, don't set loading state as it's usually fast
     if (type === "user") {

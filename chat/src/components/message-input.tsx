@@ -22,7 +22,7 @@ import {toast} from "sonner";
 import {getErrorMessage} from "@/lib/error-utils";
 
 interface MessageInputProps {
-  onSendMessage: (message: string, type: "user" | "raw" | "plan") => void;
+  onSendMessage: (message: string, type: "user" | "raw") => void;
   disabled?: boolean;
   serverStatus: ServerStatus;
 }
@@ -93,9 +93,7 @@ export default function MessageInput({
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (message.trim() && !disabled) {
-      // Determine message type based on input mode
-      const msgType = inputMode === "plan" ? "plan" : "user";
-      onSendMessage(message, msgType);
+      onSendMessage(message, "user");
       setMessage("");
     }
   };
@@ -265,14 +263,6 @@ export default function MessageInput({
                     Text
                   </TabsTrigger>
                   <TabsTrigger
-                    value="plan"
-                    onClick={() => {
-                      textareaRef.current?.focus();
-                    }}
-                  >
-                    Plan
-                  </TabsTrigger>
-                  <TabsTrigger
                     value="control"
                     onClick={() => {
                       textareaRef.current?.focus();
@@ -345,12 +335,10 @@ export default function MessageInput({
         <span className="text-xs text-muted-foreground mt-2 block text-center">
           {inputMode === "text" ? (
             <>
-              Switch to <span className="font-medium">Plan</span> mode for planning, or <span className="font-medium">Control</span> mode to
+              Switch to <span className="font-medium">Control</span> mode to
               send raw keystrokes (↑,↓,Tab,Ctrl+C,Ctrl+R) directly to the
               terminal. Drag and drop files onto the input area to upload.
             </>
-          ) : inputMode === "plan" ? (
-            <>Plan mode - Claude Code will create a plan before executing changes</>
           ) : (
             <>Control mode - keystrokes sent directly to terminal</>
           )}
